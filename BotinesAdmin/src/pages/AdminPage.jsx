@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 
 const ADMIN_KEY = "botines_admin_secret";
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 
 async function apiAdmin(method, path, secret, body = null) {
-  const res = await fetch(`/api/auth${path}`, {
+  const url = API_BASE_URL ? `${API_BASE_URL}/api/auth${path}` : `/api/auth${path}`;
+  const res = await fetch(url, {
     method,
     headers: {
       "Content-Type":  "application/json",
