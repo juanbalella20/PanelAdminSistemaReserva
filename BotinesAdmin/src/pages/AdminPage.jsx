@@ -7,15 +7,22 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
 async function apiAdmin(method, path, secret, body = null) {
   const url = API_BASE_URL ? `${API_BASE_URL}/api/auth${path}` : `/api/auth${path}`;
-  const res = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type":  "application/json",
-      "X-Admin-Secret": secret,
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  const data = await res.json();
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type":  "application/json",
+        "X-Admin-Secret": secret,
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch {
+    throw new Error("No se pudo conectar con el servidor");
+  }
+
+  const contentType = res.headers.get("content-type") ?? "";
+  const data = contentType.includes("application/json") ? await res.json() : null;
   if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
   return data;
 }
@@ -35,8 +42,12 @@ export default function AdminPage() {
       await apiAdmin("GET", "/usuarios", secret);
       sessionStorage.setItem(ADMIN_KEY, secret);
       setAutenticado(true);
-    } catch {
-      setErrorLogin("Secreto incorrecto");
+    } catch (e) {
+      if (e.message === "No se pudo conectar con el servidor") {
+        setErrorLogin(e.message);
+      } else {
+        setErrorLogin("Secreto incorrecto");
+      }
     }
   };
 
