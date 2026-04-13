@@ -93,7 +93,7 @@ export default function AdminPage() {
 function PanelAdmin({ secret, onCerrar }) {
   const [usuarios,    setUsuarios]    = useState([]);
   const [cargando,    setCargando]    = useState(true);
-  const [form,        setForm]        = useState({ negocioNombre: "", usuario: "", password: "", nombre: "" });
+  const [form,        setForm]        = useState({ negocioNombre: "", telefonoBot: "", usuario: "", password: "", nombre: "" });
   const [enviando,    setEnviando]    = useState(false);
   const [exito,       setExito]       = useState("");
   const [error,       setError]       = useState("");
@@ -117,14 +117,14 @@ function PanelAdmin({ secret, onCerrar }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setExito("");
-    if (!form.negocioNombre || !form.usuario || !form.password || !form.nombre) {
+    if (!form.negocioNombre || !form.telefonoBot || !form.usuario || !form.password || !form.nombre) {
       setError("Completá todos los campos"); return;
     }
     setEnviando(true);
     try {
       const data = await apiAdmin("POST", "/setup", secret, form);
       setExito(`✅ Negocio "${data.negocio.nombre}" y usuario "${data.usuario.usuario}" creados correctamente`);
-      setForm({ negocioNombre: "", usuario: "", password: "", nombre: "" });
+      setForm({ negocioNombre: "", telefonoBot: "", usuario: "", password: "", nombre: "" });
       cargarUsuarios();
     } catch (e) {
       setError(e.message);
@@ -166,6 +166,14 @@ function PanelAdmin({ secret, onCerrar }) {
               <input
                 name="negocioNombre" value={form.negocioNombre} onChange={handleChange}
                 placeholder="Ej: Complejo Los Pinos"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono del bot (WhatsApp)</label>
+              <input
+                name="telefonoBot" value={form.telefonoBot} onChange={handleChange}
+                placeholder="Ej: 5491112345678"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines"
               />
             </div>
