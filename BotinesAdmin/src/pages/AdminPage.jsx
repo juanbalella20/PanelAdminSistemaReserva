@@ -93,8 +93,9 @@ export default function AdminPage() {
 function PanelAdmin({ secret, onCerrar }) {
   const [usuarios,    setUsuarios]    = useState([]);
   const [cargando,    setCargando]    = useState(true);
-  const [form,        setForm]        = useState({ negocioNombre: "", telefonoBot: "", usuario: "", password: "", nombre: "" });
+  const [form,        setForm]        = useState({ negocioNombre: "", telefonoBot: "", direccion: "", usuario: "", password: "", nombre: "", cvu: "", aliasCbu: "" });
   const [enviando,    setEnviando]    = useState(false);
+  const [borrando,    setBorrando]    = useState(null);
   const [exito,       setExito]       = useState("");
   const [error,       setError]       = useState("");
 
@@ -114,17 +115,38 @@ function PanelAdmin({ secret, onCerrar }) {
 
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
+  const handleEliminar = async (u) => {
+    if (!window.confirm(`¿Eliminar el club "${u.negocio_nombre}" y su usuario @${u.usuario}? Esta acción no se puede deshacer.`)) return;
+    setError(""); setExito("");
+    setBorrando(u.id);
+    try {
+      await apiAdmin("DELETE", `/usuarios/${u.id}`, secret);
+      setExito(`Club "${u.negocio_nombre}" eliminado correctamente`);
+      cargarUsuarios();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBorrando(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setExito("");
-    if (!form.negocioNombre || !form.telefonoBot || !form.usuario || !form.password || !form.nombre) {
+    if (!form.negocioNombre || !form.telefonoBot || !form.direccion || !form.usuario || !form.password || !form.nombre) {
       setError("Completá todos los campos"); return;
+    }
+    if (!form.cvu) {
+      setError("El CVU es obligatorio para que el sistema procese los pagos"); return;
+    }
+    if (!/^\d{22}$/.test(form.cvu)) {
+      setError("El CVU debe tener exactamente 22 dígitos"); return;
     }
     setEnviando(true);
     try {
       const data = await apiAdmin("POST", "/setup", secret, form);
       setExito(`✅ Negocio "${data.negocio.nombre}" y usuario "${data.usuario.usuario}" creados correctamente`);
-      setForm({ negocioNombre: "", telefonoBot: "", usuario: "", password: "", nombre: "" });
+      setForm({ negocioNombre: "", telefonoBot: "", direccion: "", usuario: "", password: "", nombre: "", cvu: "", aliasCbu: "" });
       cargarUsuarios();
     } catch (e) {
       setError(e.message);
@@ -176,6 +198,41 @@ function PanelAdmin({ secret, onCerrar }) {
                 placeholder="Ej: 5491112345678"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección del negocio</label>
+              <input
+                name="direccion" value={form.direccion} onChange={handleChange}
+                placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines"
+              />
+            </div>
+            {/* Medio de pago */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2.5">
+              <p className="text-xs font-semibold text-yellow-800 mb-0.5">
+                <i className="fas fa-exclamation-triangle mr-1" />
+                Medio de cobro — requerido para procesar reservas
+              </p>
+              <p className="text-xs text-yellow-700">Sin CVU/Alias el sistema no puede transferir pagos al dueño de la cancha.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">CVU <span className="text-red-500">*</span></label>
+                <input
+                  name="cvu" value={form.cvu} onChange={handleChange}
+                  placeholder="22 dígitos"
+                  maxLength={22}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Alias CBU <span className="text-gray-400">(opcional)</span></label>
+                <input
+                  name="aliasCbu" value={form.aliasCbu} onChange={handleChange}
+                  placeholder="Ej: lospinos.mp"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre del responsable</label>
@@ -231,14 +288,30 @@ function PanelAdmin({ secret, onCerrar }) {
           ) : (
             <div className="divide-y divide-gray-100">
               {usuarios.map(u => (
-                <div key={u.id} className="py-3 flex items-center justify-between">
-                  <div>
+                <div key={u.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800">{u.negocio_nombre}</p>
                     <p className="text-xs text-gray-500">@{u.usuario} · {u.nombre}</p>
+                    {!u.cvu && (
+                      <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-1.5 py-0.5">
+                        <i className="fas fa-exclamation-triangle text-yellow-500" />
+                        Sin medio de pago — reservas bloqueadas
+                      </span>
+                    )}
                   </div>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 shrink-0">
                     {new Date(u.created_at).toLocaleDateString("es-AR")}
                   </span>
+                  <button
+                    onClick={() => handleEliminar(u)}
+                    disabled={borrando === u.id}
+                    className="shrink-0 text-red-500 hover:text-red-700 disabled:text-gray-300 p-1"
+                    title="Eliminar club"
+                  >
+                    {borrando === u.id
+                      ? <i className="fas fa-circle-notch fa-spin" />
+                      : <i className="fas fa-trash-alt" />}
+                  </button>
                 </div>
               ))}
             </div>
