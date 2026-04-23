@@ -93,7 +93,7 @@ export default function AdminPage() {
 function PanelAdmin({ secret, onCerrar }) {
   const [usuarios,    setUsuarios]    = useState([]);
   const [cargando,    setCargando]    = useState(true);
-  const [form,        setForm]        = useState({ negocioNombre: "", telefonoBot: "", direccion: "", usuario: "", password: "", nombre: "", cvu: "", aliasCbu: "" });
+  const [form,        setForm]        = useState({ negocioNombre: "", telefonoBot: "", phoneNumberId: "", direccion: "", usuario: "", password: "", nombre: "", cvu: "", aliasCbu: "" });
   const [enviando,    setEnviando]    = useState(false);
   const [borrando,    setBorrando]    = useState(null);
   const [exito,       setExito]       = useState("");
@@ -133,7 +133,7 @@ function PanelAdmin({ secret, onCerrar }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setExito("");
-    if (!form.negocioNombre || !form.telefonoBot || !form.direccion || !form.usuario || !form.password || !form.nombre) {
+    if (!form.negocioNombre || !form.telefonoBot || !form.phoneNumberId || !form.direccion || !form.usuario || !form.password || !form.nombre) {
       setError("Completá todos los campos"); return;
     }
     if (!form.cvu) {
@@ -146,7 +146,7 @@ function PanelAdmin({ secret, onCerrar }) {
     try {
       const data = await apiAdmin("POST", "/setup", secret, form);
       setExito(`✅ Negocio "${data.negocio.nombre}" y usuario "${data.usuario.usuario}" creados correctamente`);
-      setForm({ negocioNombre: "", telefonoBot: "", direccion: "", usuario: "", password: "", nombre: "", cvu: "", aliasCbu: "" });
+      setForm({ negocioNombre: "", telefonoBot: "", phoneNumberId: "", direccion: "", usuario: "", password: "", nombre: "", cvu: "", aliasCbu: "" });
       cargarUsuarios();
     } catch (e) {
       setError(e.message);
@@ -198,6 +198,17 @@ function PanelAdmin({ secret, onCerrar }) {
                 placeholder="Ej: 5491112345678"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Client ID (Phone Number ID) <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="phoneNumberId" value={form.phoneNumberId} onChange={handleChange}
+                placeholder="Ej: 123456789012345"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-botines font-mono"
+              />
+              <p className="text-xs text-gray-400 mt-1">ID numérico del número de WhatsApp en Meta Business (phone_number_id)</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección del negocio</label>
